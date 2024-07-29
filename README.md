@@ -1,3 +1,5 @@
+test-page : https://nextauth-google-popup-login.vercel.app/
+
 vercel deploy : https://vercel.com/mbaaskths-projects
 
 google console : https://console.cloud.google.com/apis/credentials?authuser=0&project=reactsample-430905
