@@ -1,8 +1,3 @@
-live example: https://nextauth-google-popup-login-99sn6verq-mbaaskths-projects.vercel.app/
-
-
-
-
 vercel deploy : https://vercel.com/mbaaskths-projects
 
 google console : https://console.cloud.google.com/apis/credentials?authuser=0&project=reactsample-430905
