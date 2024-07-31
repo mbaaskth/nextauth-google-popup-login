@@ -35,13 +35,7 @@ export default function Home() {
   useEffect(() => {
     if (status === "authenticated" && session) {
       // 웹뷰로 메시지 보내기
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(`hello ${session.user.email}!`);
-      } else if (window.WebViewBridge) {
-        window.WebViewBridge.send(`hello ${session.user.email}!`);
-      } else {
-        window.flutter_inappwebview.callHandler('FlutterJSChannel', `hello ${session.user.email}!`);
-      }
+      FlutterJSChannel.postMessage(`hello ${session.user.email}!`};
     }
   }, [status, session]);
 
