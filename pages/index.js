@@ -35,7 +35,7 @@ export default function Home() {
   useEffect(() => {
     if (status === "authenticated" && session) {
       // 웹뷰로 메시지 보내기
-      FlutterJSChannel.postMessage(`hello ${session.user.email}!`};
+      FlutterJSChannel.postMessage(`hello ${session.user.email}!`);
     }
   }, [status, session]);
 
