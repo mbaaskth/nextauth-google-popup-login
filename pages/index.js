@@ -33,10 +33,18 @@ export default function Home() {
   };
 
   useEffect(() => {
-      // 웹뷰로 메시지 보내기
+    console.log("useEffect executed"); // 확인용 로그
+    // 1초 대기 후 메시지 보내기
+    setTimeout(() => {
+      console.log("Sending message: hello world! please login.");
       FlutterJSChannel.postMessage(`hello world! please login.`);
+    }, 1000);
     if (status === "authenticated" && session) {
+      console.log(`Sending message: hello ${session.user.email}!`);
       FlutterJSChannel.postMessage(`hello ${session.user.email}!`);
+    } else {
+      console.log(`Hello. Please Login.`);
+      FlutterJSChannel.postMessage(`Hello. Please Login.`);
     }
   }, [status, session]);
 
