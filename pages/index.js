@@ -33,6 +33,38 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // JavaScript 코드 삽입 테스트
+    const script = document.createElement("script");
+    script.innerHTML = `
+      setTimeout(() => {
+        console.log("Sending message: hello world! please login.");
+        if (typeof FlutterJSChannel !== "undefined") {
+          FlutterJSChannel.postMessage('hello world! please login.');
+        }
+
+        if ('${status}' === "authenticated" && ${session ? true : false}) {
+          console.log('Sending message: hello ${session?.user?.email}!');
+          if (typeof FlutterJSChannel !== "undefined") {
+            FlutterJSChannel.postMessage('hello ${session?.user?.email}!');
+          }
+        } else {
+          console.log('Hello. Please Login.');
+          if (typeof FlutterJSChannel !== "undefined") {
+            FlutterJSChannel.postMessage('Hello. Please Login.');
+          }
+        }
+      }, 1000);
+    `;
+    document.body.appendChild(script);
+
+    // 클린업 함수
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [status, session]);
+
+
+  useEffect(() => {
     console.log("useEffect executed"); // 확인용 로그
     // 1초 대기 후 메시지 보내기
     setTimeout(() => {
