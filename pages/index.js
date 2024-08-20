@@ -33,6 +33,15 @@ export default function Home() {
     newWindow?.focus();
   };
 
+  class WebviewMessage {
+    constructor(requestId, action, type, data) {
+      this.requestId = requestId;
+      this.action = action;
+      this.type = type;
+      this.data = data;
+    }
+  }
+
   // 클라이언트 측에서만 실행되는 코드를 위한 useEffect
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -42,14 +51,10 @@ export default function Home() {
 
         if (type === "request" && action === "log") {
           console.log(`received from Flutter: ${JSON.stringify(message)}`);
-          
+
+          const message = new WebviewMessage(requestId, "log", "response", { status: "logged" });
           // 동일한 requestId로 Flutter에 응답
-          window.flutter_inappwebview.callHandler('webviewBridge', {
-            "requestId": requestId,
-            "action": "log",
-            "type": "response",
-            "data": { "status": "logged" },
-          });
+          window.flutter_inappwebview.callHandler('webviewBridge', message);
         }
       };
     }
@@ -68,13 +73,9 @@ export default function Home() {
 
       console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
 
+      const message = new WebviewMessage(requestId, action, "request", data);
       // 플러터로 메시지 전송 및 응답 대기
-      const response = await window.flutter_inappwebview.callHandler('webviewBridge', {
-        "requestId": requestId,
-        "action": action,
-        "type": "request",
-        "data": data,
-      });
+      const response = await window.flutter_inappwebview.callHandler('webviewBridge', message);
 
       // 플러터에서 반환된 응답 처리
       handleFlutterResponse(response);
