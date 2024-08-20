@@ -7,45 +7,9 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [pendingRequests, setPendingRequests] = useState({});
 
-    const popupCenter = (url, title) => {
-    const dualScreenLeft = window.screenLeft ?? window.screenX;
-    const dualScreenTop = window.screenTop ?? window.screenY;
-
-    const width =
-      window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
-
-    const height =
-      window.innerHeight ??
-      document.documentElement.clientHeight ??
-      screen.height;
-
-    const systemZoom = width / window.screen.availWidth;
-
-    const left = (width - 500) / 2 / systemZoom + dualScreenLeft;
-    const top = (height - 550) / 2 / systemZoom + dualScreenTop;
-
-    const newWindow = window.open(
-      url,
-      title,
-      `width=${500 / systemZoom},height=${550 / systemZoom
-      },top=${top},left=${left}`
-    );
-
-    newWindow?.focus();
-    };
-
-
   // 플러터에 메시지를 보내는 함수
-  const sendFlutterRequest = (action, data) => {
+  const sendFlutterRequest = async (action, data) => {
     const requestId = uuidv4(); // 고유한 requestId 생성
-
-    // Flutter로 메시지 전송
-    window.flutterBridge({
-      requestId: requestId,
-      action: action,
-      type: "request",
-      data: data,
-    });
 
     // 응답 대기 중인 요청으로 저장
     setPendingRequests((prevRequests) => ({
@@ -54,44 +18,56 @@ export default function Home() {
     }));
 
     console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
+
+    // 플러터로 메시지 전송 및 응답 대기
+    const response = await window.webviewBridge({
+      requestId: requestId,
+      action: action,
+      type: "request",
+      data: data,
+    });
+
+    // 플러터에서 반환된 응답 처리
+    handleFlutterResponse(response);
   };
 
-  // 플러터로부터 메시지를 받을 때 처리하는 함수
-  const handleFlutterMessage = (event) => {
-    const message = event.data;
+  // 플러터에서 받은 응답을 처리하는 함수
+  const handleFlutterResponse = (response) => {
+    const { requestId, action, type, data } = response;
 
-    if (message.type === "response" && pendingRequests[message.requestId]) {
-      console.log(`Response received: ${JSON.stringify(message)}`);
+    if (type === "response" && pendingRequests[requestId]) {
+      console.log(`Response received: ${JSON.stringify(response)}`);
 
       // 응답 후 pendingRequests에서 제거
       setPendingRequests((prevRequests) => {
         const newRequests = { ...prevRequests };
-        delete newRequests[message.requestId];
+        delete newRequests[requestId];
         return newRequests;
       });
-    } else if (message.type === "request" && message.action === "log") {
-      console.log(`Log action received from Flutter: ${JSON.stringify(message.data)}`);
+
+      // 웹 페이지에 메시지 표시 (선택 사항)
+      setMessage(`Received response for action: ${action}`);
+    }
+  };
+
+  // 플러터에서 호출될 함수 정의 (JavaScript에서 실행될 함수)
+  window.flutterBridge = (message) => {
+    const { requestId, action, type, data } = message;
+
+    if (type === "request" && action === "log") {
+      console.log(`Log action received from Flutter: ${JSON.stringify(data)}`);
       
       // 동일한 requestId로 Flutter에 응답 전송 (콜백)
-      window.flutterBridge({
-        requestId: message.requestId,
-        action: "logResponse",
+      window.webviewBridge({
+        requestId: requestId,
+        action: "log",
         type: "response",
         data: { status: "logged" },
       });
 
-      console.log(`Callback sent: ${message.requestId}, action: logResponse`);
+      console.log(`Callback sent: ${requestId}, action: logResponse`);
     }
   };
-
-  // 플러터 메시지 핸들러 등록
-  useEffect(() => {
-    window.addEventListener("message", handleFlutterMessage);
-
-    return () => {
-      window.removeEventListener("message", handleFlutterMessage);
-    };
-  }, [pendingRequests]);
 
   if (status === "authenticated") {
     return (
