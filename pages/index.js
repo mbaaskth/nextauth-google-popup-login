@@ -45,7 +45,7 @@ export default function Home() {
           
           // 동일한 requestId로 Flutter에 응답
           window.flutter_inappwebview.callHandler('webviewBridge', {
-            "requestId": "\"${requestId}\"",
+            "requestId": requestId,
             "action": "log",
             "type": "response",
             "data": { "status": "logged" },
@@ -70,10 +70,10 @@ export default function Home() {
 
       // 플러터로 메시지 전송 및 응답 대기
       const response = await window.flutter_inappwebview.callHandler('webviewBridge', {
-        requestId: requestId,
-        action: action,
-        type: "request",
-        data: data,
+        "requestId": requestId,
+        "action": action,
+        "type": "request",
+        "data": data,
       });
 
       // 플러터에서 반환된 응답 처리
