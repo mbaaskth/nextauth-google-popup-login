@@ -27,13 +27,11 @@ export default function Home() {
     const newWindow = window.open(
       url,
       title,
-      width=${500 / systemZoom},height=${550 / systemZoom
-      },top=${top},left=${left}
+      `width=${500 / systemZoom},height=${550 / systemZoom},top=${top},left=${left}`
     );
 
     newWindow?.focus();
   };
-
 
   // 클라이언트 측에서만 실행되는 코드를 위한 useEffect
   useEffect(() => {
@@ -48,7 +46,7 @@ export default function Home() {
           // 동일한 requestId로 Flutter에 응답 전송 (콜백)
           window.webviewBridge({
             requestId: requestId,
-            action: "logResponse",
+            action: "log",
             type: "response",
             data: { status: "logged" },
           });
