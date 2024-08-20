@@ -41,14 +41,14 @@ export default function Home() {
         const { requestId, action, type, data } = message;
 
         if (type === "request" && action === "log") {
-          console.log(`received from Flutter: ${JSON.stringify(data)}`);
+          console.log(`received from Flutter: ${JSON.stringify(message)}`);
           
           // 동일한 requestId로 Flutter에 응답
           window.flutter_inappwebview.callHandler('webviewBridge', {
-            requestId: requestId,
-            action: "log",
-            type: "response",
-            data: { status: "logged" },
+            "requestId": "\"$requestId\"",
+            "action": "log",
+            "type": "response",
+            "data": { "status": "logged" },
           });
         }
       };
