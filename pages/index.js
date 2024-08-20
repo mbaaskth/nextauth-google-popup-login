@@ -41,17 +41,15 @@ export default function Home() {
         const { requestId, action, type, data } = message;
 
         if (type === "request" && action === "log") {
-          console.log(`Log action received from Flutter: ${JSON.stringify(data)}`);
+          console.log(`received from Flutter: ${JSON.stringify(data)}`);
           
-          // 동일한 requestId로 Flutter에 응답 전송 (콜백)
-          window.webviewBridge({
+          // 동일한 requestId로 Flutter에 응답
+          window.flutter_inappwebview.callHandler('webviewBridge', {
             requestId: requestId,
             action: "log",
             type: "response",
             data: { status: "logged" },
           });
-
-          console.log(`Callback sent: ${requestId}, action: logResponse`);
         }
       };
     }
@@ -71,7 +69,7 @@ export default function Home() {
       console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
 
       // 플러터로 메시지 전송 및 응답 대기
-      const response = await window.webviewBridge({
+      const response = await window.flutter_inappwebview.callHandler('webviewBridge', {
         requestId: requestId,
         action: action,
         type: "request",
@@ -96,9 +94,6 @@ export default function Home() {
         delete newRequests[requestId];
         return newRequests;
       });
-
-      // 웹 페이지에 메시지 표시 (선택 사항)
-      setMessage(`Received response for action: ${action}`);
     }
   };
 
