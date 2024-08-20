@@ -1,99 +1,69 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from 'uuid'; // requestId 생성을 위한 uuid
 
 export default function Home() {
   const { data: session, status } = useSession();
   const [message, setMessage] = useState("");
+  const [pendingRequests, setPendingRequests] = useState({});
 
-  const popupCenter = (url, title) => {
-    const dualScreenLeft = window.screenLeft ?? window.screenX;
-    const dualScreenTop = window.screenTop ?? window.screenY;
+  // 플러터에 메시지를 보내는 함수
+  const sendFlutterRequest = (action, data) => {
+    const requestId = uuidv4(); // 고유한 requestId 생성
 
-    const width =
-      window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
+    // Flutter로 메시지 전송
+    window.flutterBridge({
+      requestId: requestId,
+      action: action,
+      type: "request",
+      data: data,
+    });
 
-    const height =
-      window.innerHeight ??
-      document.documentElement.clientHeight ??
-      screen.height;
+    // 응답 대기 중인 요청으로 저장
+    setPendingRequests((prevRequests) => ({
+      ...prevRequests,
+      [requestId]: { action, data },
+    }));
 
-    const systemZoom = width / window.screen.availWidth;
-
-    const left = (width - 500) / 2 / systemZoom + dualScreenLeft;
-    const top = (height - 550) / 2 / systemZoom + dualScreenTop;
-
-    const newWindow = window.open(
-      url,
-      title,
-      `width=${500 / systemZoom},height=${550 / systemZoom
-      },top=${top},left=${left}`
-    );
-
-    newWindow?.focus();
+    console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
   };
 
-  useEffect(() => {
-    // JavaScript 코드 삽입 테스트
-    const script = document.createElement("script");
-    script.innerHTML = `
-      setTimeout(() => {
-        console.log("Sending message: hello world! please login.");
-        if (typeof FlutterJSChannel !== "undefined") {
-          FlutterJSChannel.postMessage('hello world! please login.');
-        }
+  // 플러터로부터 메시지를 받을 때 처리하는 함수
+  const handleFlutterMessage = (event) => {
+    const message = event.data;
 
-        if ('${status}' === "authenticated" && ${session ? true : false}) {
-          console.log('Sending message: hello ${session?.user?.email}!');
-          if (typeof FlutterJSChannel !== "undefined") {
-            FlutterJSChannel.postMessage('hello ${session?.user?.email}!');
-          }
-        } else {
-          console.log('Hello. Please Login.');
-          if (typeof FlutterJSChannel !== "undefined") {
-            FlutterJSChannel.postMessage('Hello. Please Login.');
-          }
-        }
-      }, 1000);
-    `;
-    document.body.appendChild(script);
+    if (message.type === "response" && pendingRequests[message.requestId]) {
+      console.log(`Response received: ${JSON.stringify(message)}`);
 
-    // 클린업 함수
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [status, session]);
+      // 응답 후 pendingRequests에서 제거
+      setPendingRequests((prevRequests) => {
+        const newRequests = { ...prevRequests };
+        delete newRequests[message.requestId];
+        return newRequests;
+      });
+    } else if (message.type === "request" && message.action === "log") {
+      console.log(`Log action received from Flutter: ${JSON.stringify(message.data)}`);
+      
+      // 동일한 requestId로 Flutter에 응답 전송 (콜백)
+      window.flutterBridge({
+        requestId: message.requestId,
+        action: "logResponse",
+        type: "response",
+        data: { status: "logged" },
+      });
 
-
-  useEffect(() => {
-    console.log("useEffect executed"); // 확인용 로그
-    // 1초 대기 후 메시지 보내기
-    setTimeout(() => {
-      console.log("Sending message: hello world! please login.");
-      FlutterJSChannel.postMessage(`hello world! please login.`);
-    }, 1000);
-    if (status === "authenticated" && session) {
-      console.log(`Sending message: hello ${session.user.email}!`);
-      FlutterJSChannel.postMessage(`hello ${session.user.email}!`);
-    } else {
-      console.log(`Hello. Please Login.`);
-      FlutterJSChannel.postMessage(`Hello. Please Login.`);
+      console.log(`Callback sent: ${message.requestId}, action: logResponse`);
     }
-  }, [status, session]);
+  };
 
+  // 플러터 메시지 핸들러 등록
   useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data.startsWith("hello Web")) {
-        setMessage(event.data); // 메시지를 상태에 저장
-      }
-    };
+    window.addEventListener("message", handleFlutterMessage);
 
-    window.addEventListener("message", handleMessage);
-
-    // 클린업 함수로 이벤트 리스너 제거
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("message", handleFlutterMessage);
     };
-  }, []);
+  }, [pendingRequests]);
 
   if (status === "authenticated") {
     return (
@@ -101,6 +71,11 @@ export default function Home() {
         <h2>Welcome {session.user.email} 😀</h2>
         <button onClick={() => signOut()}>Sign out</button>
         {message && <p>{message}</p>} {/* 메시지를 화면에 표시 */}
+        
+        {/* 이 버튼을 누르면 Flutter로 메시지를 보냅니다 */}
+        <button onClick={() => sendFlutterRequest('log', { message: 'Hello from Next.js' })}>
+          Send Log to Flutter
+        </button>
       </div>
     );
   } else if (status === "unauthenticated") {
