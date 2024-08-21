@@ -45,18 +45,29 @@ export default function Home() {
   // 클라이언트 측에서만 실행되는 코드를 위한 useEffect
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 플러터에서 호출될 함수 정의 (JavaScript에서 실행될 함수)
-      window.flutterBridge = (message) => {
-        const { requestId, action, type, data } = message;
+      window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
+        console.log("Flutter Webview is ready.");
+        
+        // 웹에서 먼저 요청을 보낸 후 응답을 받을 때 webviewBridge
+        window.flutter_inappwebview.callHandler('webviewBridge')
+          .then(function(result) {
+            console.log("Data received from Flutter: ", result);
+            alert(result); // 앱에서 받은 데이터를 alert로 표시
+          });
+        // 앱에서 먼저 요청을 보낼 때 flutterBridge
+        window.flutter_inappwebview.callHandler('flutterBridge')
+          .then((message) => {
+            const { requestId, action, type, data } = message;
 
-        if (type === "request" && action === "log") {
-          console.log(`received from Flutter: ${JSON.stringify(message)}`);
+            if (type === "request" && action === "log") {
+              console.log(`Received from Flutter: ${JSON.stringify(message)}`);
 
-          const message = new WebviewMessage(requestId, "log", "response", { status: "logged" });
-          // 동일한 requestId로 Flutter에 응답
-          window.flutter_inappwebview.callHandler('webviewBridge', message);
-        }
-      };
+              const responseMessage = new WebviewMessage(requestId, "log", "response", { status: "logged" });
+              // 동일한 requestId로 Flutter에 응답
+              window.flutter_inappwebview.callHandler('webviewBridge', responseMessage);
+            }
+          });
+      });
     }
   }, []);
 
