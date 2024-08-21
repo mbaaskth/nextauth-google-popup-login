@@ -2,6 +2,8 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from 'uuid'; // requestId 생성을 위한 uuid
 
+// 앱에서 먼저 요청을 보낼 때 : flutterBridge
+// 웹에서 먼저 요청을 보낼 때 : webviewBridge
 export default function Home() {
   const { data: session, status } = useSession();
   const [message, setMessage] = useState("");
@@ -42,40 +44,43 @@ export default function Home() {
     }
   }
 
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
-        console.log("Flutter Webview is ready.");
-  
-        // 웹에서 먼저 요청을 보낸 후, 앱에서 응답을 보낼 때 handler : webviewBridge
-        window.flutter_inappwebview.callHandler('webviewBridge')
-          .then(function(result) {
-            console.log("Data received from Flutter: ", result);
+      // 웹에서 먼저 요청을 보낸 후, 앱의 응답을 받을 때
+      window.flutter_inappwebview.webviewBridge = (message) => {
+        const { requestId, action, type, data } = message;
+        if (type === "response" && pendingRequests[requestId]) {
+          console.log(`Response received: ${JSON.stringify(response)}`);
+    
+          // 응답 후 pendingRequests에서 제거
+          setPendingRequests((prevRequests) => {
+            const newRequests = { ...prevRequests };
+            delete newRequests[requestId];
+            return newRequests;
           });
-  
-        // 앱에서 먼저 요청을 보낼 때 handler : flutterBridge
-        window.flutter_inappwebview.callHandler('flutterBridge')
-          .then((message) => {
-            const { requestId, action, type, data } = message;
-  
-            if (type === "request" && action === "log") {
-              console.log(`Received from Flutter: ${JSON.stringify(message)}`);
-              const responseMessage = new WebviewMessage(requestId, "log", "response", { status: "logged" });
-              window.flutter_inappwebview.callHandler('webviewBridge', responseMessage);
-            }
-          })
-          .catch(err => {
-            console.error("Error handling flutterBridge:", err);
-          });
-      });
+        }
+      };
+      
+      // 앱에서 먼저 요청을 보낼 때
+      window.flutter_inappwebview.flutterBridge = (message) => {
+        const { requestId, action, type, data } = message;
+
+        if (type === "request" && action === "log") {
+          console.log(`received from Flutter: ${JSON.stringify(message)}`);
+
+          // 동일한 requestId로 앱에 응답
+          const message = new WebviewMessage(requestId, "log", "response", { status: "logged" });
+          window.flutter_inappwebview.callHandler('flutterBridge', message);
+        }
+      };
     }
   }, []);
 
-
-  // 앱으로 먼저 요청을 보낼 때 handler : webviewBridge
+  // 앱에 먼저 요청을 보낼 때
   const sendFlutterRequest = async (action, data) => {
     if (typeof window !== 'undefined') {
-      const requestId = uuidv4();
+      const requestId = uuidv4(); // 고유한 requestId 생성
 
       // 응답 대기 중인 요청으로 저장
       setPendingRequests((prevRequests) => ({
@@ -86,26 +91,7 @@ export default function Home() {
       console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
 
       const message = new WebviewMessage(requestId, action, "request", data);
-      const response = await window.flutter_inappwebview.callHandler('webviewBridge', message);
-
-      // 앱에서 반환된 응답 처리
-      handleFlutterResponse(response);
-    }
-  };
-
-  // 앱에서 받은 응답을 처리하는 함수
-  const handleFlutterResponse = (response) => {
-    const { requestId, action, type, data } = response;
-
-    if (type === "response" && pendingRequests[requestId]) {
-      console.log(`Response received: ${JSON.stringify(response)}`);
-
-      // 응답 후 pendingRequests에서 제거
-      setPendingRequests((prevRequests) => {
-        const newRequests = { ...prevRequests };
-        delete newRequests[requestId];
-        return newRequests;
-      });
+      window.flutter_inappwebview.callHandler('webviewBridge', message);
     }
   };
 
