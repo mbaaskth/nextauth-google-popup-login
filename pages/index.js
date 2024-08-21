@@ -48,8 +48,9 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // 웹에서 먼저 요청을 보낸 후, 앱의 응답을 받을 때
-      window.flutter_inappwebview.webviewBridge = (message) => {
-        const { requestId, action, type, data } = message;
+      window.flutter_inappwebview.webviewBridge = (response) => {
+        const parsedResponse = JSON.parse(response);
+        const { type, action, requestId, data } = parsedResponse;
         if (type === "response" && pendingRequests[requestId]) {
           console.log(`Response received: ${JSON.stringify(response)}`);
     
@@ -71,8 +72,8 @@ export default function Home() {
           console.log(`received from Flutter: ${JSON.stringify(data)}`);
       
           // 동일한 requestId로 앱에 응답
-          const responseMessage = new WebviewMessage(requestId, "log", "response", { status: "logged" });
-          window.flutter_inappwebview.callHandler('flutterBridge', JSON.stringify(responseMessage));
+          const responseMessage = new WebviewMessage(requestId, action, "response", { status: "logged" });
+          window.flutter_inappwebview.callHandler('flutterBridge', responseMessage);
         }
       };
     }
