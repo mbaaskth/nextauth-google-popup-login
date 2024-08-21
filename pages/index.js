@@ -63,15 +63,16 @@ export default function Home() {
       };
       
       // 앱에서 먼저 요청을 보낼 때
-      window.flutter_inappwebview.flutterBridge = (message) => {
-        const { requestId, action, type, data } = message;
-
+      window.flutter_inappwebview.flutterBridge = (request) => {
+        const parsedRequest = JSON.parse(request);
+        const { type, action, requestId, data } = parsedRequest;
+      
         if (type === "request" && action === "log") {
-          console.log(`received from Flutter: ${JSON.stringify(message)}`);
-
+          console.log(`received from Flutter: ${JSON.stringify(data)}`);
+      
           // 동일한 requestId로 앱에 응답
-          const message = new WebviewMessage(requestId, "log", "response", { status: "logged" });
-          window.flutter_inappwebview.callHandler('flutterBridge', message);
+          const responseMessage = new WebviewMessage(requestId, "log", "response", { status: "logged" });
+          window.flutter_inappwebview.callHandler('flutterBridge', JSON.stringify(responseMessage));
         }
       };
     }
