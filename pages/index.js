@@ -42,39 +42,40 @@ export default function Home() {
     }
   }
 
-  // 클라이언트 측에서만 실행되는 코드를 위한 useEffect
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
         console.log("Flutter Webview is ready.");
-        
-        // 웹에서 먼저 요청을 보낸 후 응답을 받을 때 webviewBridge
+  
+        // 웹에서 먼저 요청을 보낸 후, 앱에서 응답을 보낼 때 handler : webviewBridge
         window.flutter_inappwebview.callHandler('webviewBridge')
           .then(function(result) {
             console.log("Data received from Flutter: ", result);
-            alert(result); // 앱에서 받은 데이터를 alert로 표시
           });
-        // 앱에서 먼저 요청을 보낼 때 flutterBridge
+  
+        // 앱에서 먼저 요청을 보낼 때 handler : flutterBridge
         window.flutter_inappwebview.callHandler('flutterBridge')
           .then((message) => {
             const { requestId, action, type, data } = message;
-
+  
             if (type === "request" && action === "log") {
               console.log(`Received from Flutter: ${JSON.stringify(message)}`);
-
               const responseMessage = new WebviewMessage(requestId, "log", "response", { status: "logged" });
-              // 동일한 requestId로 Flutter에 응답
               window.flutter_inappwebview.callHandler('webviewBridge', responseMessage);
             }
+          })
+          .catch(err => {
+            console.error("Error handling flutterBridge:", err);
           });
       });
     }
   }, []);
 
-  // 플러터에 메시지를 보내는 함수
+
+  // 앱으로 먼저 요청을 보낼 때 handler : webviewBridge
   const sendFlutterRequest = async (action, data) => {
     if (typeof window !== 'undefined') {
-      const requestId = uuidv4(); // 고유한 requestId 생성
+      const requestId = uuidv4();
 
       // 응답 대기 중인 요청으로 저장
       setPendingRequests((prevRequests) => ({
@@ -85,15 +86,14 @@ export default function Home() {
       console.log(`Request sent: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
 
       const message = new WebviewMessage(requestId, action, "request", data);
-      // 플러터로 메시지 전송 및 응답 대기
       const response = await window.flutter_inappwebview.callHandler('webviewBridge', message);
 
-      // 플러터에서 반환된 응답 처리
+      // 앱에서 반환된 응답 처리
       handleFlutterResponse(response);
     }
   };
 
-  // 플러터에서 받은 응답을 처리하는 함수
+  // 앱에서 받은 응답을 처리하는 함수
   const handleFlutterResponse = (response) => {
     const { requestId, action, type, data } = response;
 
