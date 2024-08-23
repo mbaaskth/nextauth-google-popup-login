@@ -50,7 +50,7 @@ export default function Home() {
       // 웹에서 먼저 요청을 보낸 후, 앱의 응답을 받을 때
       window.flutter_inappwebview.webviewBridge = (response) => {
         const { type, action, request_id, data } = response;
-        console.log(`Response received: ${JSON.stringify(response)}`);
+        console.log(`Response Received: ${JSON.stringify(response)}`);
         
         if (type === "response" && pendingRequests[request_id]) {
           // 응답 후 pendingRequests에서 제거
@@ -65,9 +65,10 @@ export default function Home() {
       // 앱에서 먼저 요청을 보낼 때
       window.flutter_inappwebview.flutterBridge = (request) => {
         const { type, action, request_id, data } = request;
-        console.log(`received from Flutter: ${JSON.stringify(request)}`);
+        console.log(`Received Request: ${JSON.stringify(request)}`);
         
         if (type === "request" && action === "log") {
+          console.log(`sent : ${JSON.stringify(request)}`);
           // 동일한 requestId로 앱에 응답
           const responseMessage = new WebviewMessage(request_id, action, "response", { status: "logged" });
           window.flutter_inappwebview.callHandler('flutterBridge', responseMessage);
@@ -87,7 +88,7 @@ export default function Home() {
         [requestId]: { action, data },
       }));
 
-      console.log(`sent request_id: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
+      console.log(`sent : ${JSON.stringify(request)}`);
 
       const message = new WebviewMessage(requestId, action, "request", data);
       window.flutter_inappwebview.callHandler('webviewBridge', message);
