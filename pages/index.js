@@ -52,11 +52,11 @@ export default function Home() {
         const { type, action, request_id, data } = response;
         console.log(`Response received: ${JSON.stringify(response)}`);
         
-        if (type === "response" && pendingRequests[requestId]) {
+        if (type === "response" && pendingRequests[request_id]) {
           // 응답 후 pendingRequests에서 제거
           setPendingRequests((prevRequests) => {
             const newRequests = { ...prevRequests };
-            delete newRequests[requestId];
+            delete newRequests[request_id];
             return newRequests;
           });
         }
@@ -69,7 +69,7 @@ export default function Home() {
         
         if (type === "request" && action === "log") {
           // 동일한 requestId로 앱에 응답
-          const responseMessage = new WebviewMessage(requestId, action, "response", { status: "logged" });
+          const responseMessage = new WebviewMessage(request_id, action, "response", { status: "logged" });
           window.flutter_inappwebview.callHandler('flutterBridge', responseMessage);
         }
       };
