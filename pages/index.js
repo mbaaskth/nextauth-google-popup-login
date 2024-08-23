@@ -37,7 +37,7 @@ export default function Home() {
 
   class WebviewMessage {
     constructor(requestId, action, type, data) {
-      this.requestId = requestId;
+      this.request_id = requestId;
       this.action = action;
       this.type = type;
       this.data = data;
@@ -49,10 +49,10 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       // 웹에서 먼저 요청을 보낸 후, 앱의 응답을 받을 때
       window.flutter_inappwebview.webviewBridge = (response) => {
-        const { type, action, requestId, data } = response;
+        const { type, action, request_id, data } = response;
+        console.log(`Response received: ${JSON.stringify(response)}`);
+        
         if (type === "response" && pendingRequests[requestId]) {
-          console.log(`Response received: ${response}`);
-    
           // 응답 후 pendingRequests에서 제거
           setPendingRequests((prevRequests) => {
             const newRequests = { ...prevRequests };
@@ -64,11 +64,10 @@ export default function Home() {
       
       // 앱에서 먼저 요청을 보낼 때
       window.flutter_inappwebview.flutterBridge = (request) => {
-        const { type, action, requestId, data } = request;
-      
+        const { type, action, request_id, data } = request;
+        console.log(`received from Flutter: ${JSON.stringify(request)}`);
+        
         if (type === "request" && action === "log") {
-          console.log(`received from Flutter: ${request}`);
-      
           // 동일한 requestId로 앱에 응답
           const responseMessage = new WebviewMessage(requestId, action, "response", { status: "logged" });
           window.flutter_inappwebview.callHandler('flutterBridge', responseMessage);
@@ -88,7 +87,7 @@ export default function Home() {
         [requestId]: { action, data },
       }));
 
-      console.log(`sent requestId: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
+      console.log(`sent request_id: ${requestId}, action: ${action}, data: ${JSON.stringify(data)}`);
 
       const message = new WebviewMessage(requestId, action, "request", data);
       window.flutter_inappwebview.callHandler('webviewBridge', message);
